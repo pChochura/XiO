@@ -157,6 +157,7 @@
     <ClInclude Include="Src\Screens\Screen.h" />
     <ClInclude Include="Src\Screens\StartScreen.h" />
     <ClInclude Include="Src\Utils\GameMode.h" />
+    <ClInclude Include="Src\Utils\State.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

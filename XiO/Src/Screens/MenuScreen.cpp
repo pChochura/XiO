@@ -8,7 +8,7 @@ void MenuScreen::load(Resources* resources) {
 
 	MenuUILayer* menuUILayer = new MenuUILayer(resources);
 	menuUILayer->setOnClickListener([&, resources](GameMode gameMode) {
-		this->onChangeScreenListener(new StartScreen);
+		this->onChangeScreenListener(new StartScreen(gameMode));
 	});
 
 	this->layers.push_back(new BackgroundLayer(resources));

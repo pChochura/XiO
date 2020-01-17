@@ -1,15 +1,21 @@
+#include <time.h>
 #include <SFML/Graphics.hpp>
 #include "GameUILayer.h"
 #include "../Board.h"
+#include "../Utils/State.h"
+#include "../Utils/GameMode.h"
 
-GameUILayer::GameUILayer(Resources* resources) {
+GameUILayer::GameUILayer(Resources* resources, GameMode gameMode) {
 	resources->textures.load(Textures::O, "Data/Textures/O.png");
 	resources->textures.load(Textures::X, "Data/Textures/X.png");
 
 	resources->textures.get(Textures::O).setSmooth(true);
 	resources->textures.get(Textures::X).setSmooth(true);
 
-	this->board = new Board(10);
+	this->board = new Board(3, gameMode);
+	this->board->setOnCompleteListener([&](State state) {
+		onCompleteListener()
+	});
 }
 
 void GameUILayer::draw(Resources* resources) const {
@@ -35,12 +41,14 @@ void GameUILayer::draw(Resources* resources) const {
 	for (int i = 0; i < this->board->getSize(); i++) {
 		for (int j = 0; j < this->board->getSize(); j++) {
 			switch (this->board->getAt(i, j)) {
-			case Value::X:
+			case State::X:
 				icon.setTexture(resources->textures.get(Textures::X));
 				break;
-			case Value::O:
+			case State::O:
 				icon.setTexture(resources->textures.get(Textures::O));
 				break;
+			default:
+				continue;
 			}
 			icon.setScale(unitSize / icon.getLocalBounds().width, unitSize / icon.getLocalBounds().height);
 			icon.setPosition(i * unitSize + x - boardSize / 2.0f, j * unitSize + y);
@@ -58,11 +66,18 @@ bool GameUILayer::onEvent(Resources* resources, sf::Event* event) const {
 		sf::Vector2i pos = sf::Mouse::getPosition(*resources->window);
 		if (pos.x >= x - boardSize / 2.0f && pos.x <= x + boardSize / 2.0f &&
 			pos.y >= y && pos.y <= y + boardSize) {
-			int unitX = (pos.x - x + boardSize / 2.0f) / unitSize;
-			int unitY = (pos.y - y) / unitSize;
-			this->board->setAt(unitX, unitY, Value::X);
+			int unitX = (int) ((pos.x - x + boardSize / 2.0f) / unitSize);
+			int unitY = (int) ((pos.y - y) / unitSize);
+			this->board->setAt(unitX, unitY, this->board->getCurrentPlayer());
+			if (this->board->getGameMode() == GameMode::SINGLE_PLAYER) {
+				this->board->makeMove();
+			}
 			return true;
 		}
 	}
 	return false;
+}
+
+void GameUILayer::setOnCompleteListener(std::function<void()> onCompleteListener) {
+	this->onCompleteListener = onCompleteListener;
 }
