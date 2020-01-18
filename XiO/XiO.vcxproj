@@ -134,6 +134,8 @@
     <ClCompile Include="Src\Drawables\RoundedRectangleShape.cpp" />
     <ClCompile Include="Src\Game.cpp" />
     <ClCompile Include="Src\Layers\BackgroundLayer.cpp" />
+    <ClCompile Include="Src\Layers\CompleteLayer.cpp" />
+    <ClCompile Include="Src\Layers\DifficultyLayer.cpp" />
     <ClCompile Include="Src\Layers\GameUILayer.cpp" />
     <ClCompile Include="Src\Layers\MenuUILayer.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -148,6 +150,8 @@
     <ClInclude Include="Src\Drawables\RoundedRectangleShape.h" />
     <ClInclude Include="Src\Game.h" />
     <ClInclude Include="Src\Layers\BackgroundLayer.h" />
+    <ClInclude Include="Src\Layers\CompleteLayer.h" />
+    <ClInclude Include="Src\Layers\DifficultyLayer.h" />
     <ClInclude Include="Src\Layers\GameUILayer.h" />
     <ClInclude Include="Src\Layers\Layer.h" />
     <ClInclude Include="Src\Layers\MenuUILayer.h" />
@@ -158,6 +162,7 @@
     <ClInclude Include="Src\Screens\StartScreen.h" />
     <ClInclude Include="Src\Utils\GameMode.h" />
     <ClInclude Include="Src\Utils\State.h" />
+    <ClInclude Include="Src\Utils\Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -1,25 +1,31 @@
 #pragma once
+#include <functional>
 #include "Layer.h"
 #include "../Utils/GameMode.h"
 #include "../Drawables/Button.h"
 
 ////////////////////////////////////////////////////////////
-// Warstwa, która wyœwietla przyciski w menu.
+// Warstwa, na której wyœwietlane s¹ poziomy trudnoœci
+// po wybraniu trybu `Singleplayer`.
 ////////////////////////////////////////////////////////////
-class MenuUILayer : public Layer {
+class DifficultyLayer : public Layer {
 public:
-	MenuUILayer(Resources*);
+	DifficultyLayer(Resources*);
 
 	virtual void draw(Resources*) const override;
 	virtual bool onEvent(Resources*, sf::Event*) const override;
 
 	////////////////////////////////////////////////////////////
-	// Pozwala ustawiæ funkcjê, która zostanie wywo³ana po
-	// wybraniu trybu gry. Paramtrem bêdzie wybrany tryb.
+	// Pozwala ustawiæ funckjê, która zostanie wywo³ana
+	// po wybraniu poziomu trudnoœci. Poziom ten zostanie
+	// przekazany jako parametr.
 	////////////////////////////////////////////////////////////
-	void setOnClickListener(std::function<void(GameMode)>);
+	void setOnClickListener(std::function<void(Difficulty)>);
 
 private:
+	sf::Vector2f size;
+	sf::Vector2f pos;
 	std::vector<Button*> buttons;
-	std::function<void(GameMode)> onClickListener;
+
+	std::function<void(Difficulty)> onClickListener;
 };

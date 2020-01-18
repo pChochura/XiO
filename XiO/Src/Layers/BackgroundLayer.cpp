@@ -2,7 +2,7 @@
 #include "../Resources/Resources.h"
 
 BackgroundLayer::BackgroundLayer(Resources* resources) {
-	resources->textures.load(Textures::Background, "Data/Textures/background.png");
+	resources->textures.load(Textures::ID::Background, "Data/Textures/background.png");
 
 	float max = (float)std::max(resources->window->getSize().x, resources->window->getSize().y);
 	float ratio = 16.0f / 9.0f;
@@ -10,7 +10,7 @@ BackgroundLayer::BackgroundLayer(Resources* resources) {
 }
 
 void BackgroundLayer::draw(Resources* resources) const {
-	sf::Sprite background(resources->textures.get(Textures::Background));
+	sf::Sprite background(resources->textures.get(Textures::ID::Background));
 	background.setScale(this->size.x / background.getLocalBounds().width, this->size.y / background.getLocalBounds().height);
 	resources->window->draw(background);
 }

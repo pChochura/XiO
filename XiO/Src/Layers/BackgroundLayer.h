@@ -2,6 +2,9 @@
 #include <SFML/Graphics.hpp>
 #include "Layer.h"
 
+////////////////////////////////////////////////////////////
+// Warstwa odpowiedzialna za t³o.
+////////////////////////////////////////////////////////////
 class BackgroundLayer : public Layer {
 public:
 	BackgroundLayer(Resources*);

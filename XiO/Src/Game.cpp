@@ -7,7 +7,7 @@ Game::Game(std::string title, int width, int height) : screen(new MenuScreen) {
 	this->resources = new Resources(
 		new sf::RenderWindow(sf::VideoMode(width, height), 
 			title, 
-			sf::Style::Close, 
+			sf::Style::Close,
 			sf::ContextSettings(0, 0, 8)
 		)
 	);
@@ -20,6 +20,8 @@ void Game::show() {
 		while (this->resources->window->pollEvent(event)) {
 			if (event.type == sf::Event::Closed) {
 				this->resources->window->close();
+			} else if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape) {
+				changeScreen(new MenuScreen);
 			} else {
 				this->screen->onEvent(this->resources, &event);
 			}

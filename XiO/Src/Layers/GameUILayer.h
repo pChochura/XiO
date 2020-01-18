@@ -3,16 +3,29 @@
 #include "../Board.h"
 #include "../Utils/GameMode.h"
 
+////////////////////////////////////////////////////////////
+// Warstwa wyœwietlaj¹ca planszê.
+////////////////////////////////////////////////////////////
 class GameUILayer : public Layer {
 public:
-	GameUILayer(Resources*, GameMode);
+	GameUILayer(Resources*, GameMode, Difficulty);
 
 	virtual void draw(Resources*) const override;
 	virtual bool onEvent(Resources*, sf::Event*) const override;
 
-	void setOnCompleteListener(std::function<void()>);
+	////////////////////////////////////////////////////////////
+	// Pozwala ustawiæ funkcjê, która zostanie wywo³ana, gdy
+	// gra zostanie zakoñczona. Parametr przyjmuje wartoœæ
+	// w zale¿noœci od wyniku.
+	////////////////////////////////////////////////////////////
+	void setOnCompleteListener(std::function<void(State)>);
+
+	////////////////////////////////////////////////////////////
+	// Pozwala ustawiæ planszê jako pust¹.
+	////////////////////////////////////////////////////////////
+	void resetBoard();
 
 private:
 	Board* board;
-	std::function<void()> onCompleteListener;
+	std::function<void(State)> onCompleteListener;
 };

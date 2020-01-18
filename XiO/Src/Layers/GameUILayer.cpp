@@ -5,16 +5,18 @@
 #include "../Utils/State.h"
 #include "../Utils/GameMode.h"
 
-GameUILayer::GameUILayer(Resources* resources, GameMode gameMode) {
-	resources->textures.load(Textures::O, "Data/Textures/O.png");
-	resources->textures.load(Textures::X, "Data/Textures/X.png");
+GameUILayer::GameUILayer(Resources* resources, GameMode gameMode, Difficulty difficulty) {
+	resources->textures.load(Textures::ID::O, "Data/Textures/O.png");
+	resources->textures.load(Textures::ID::X, "Data/Textures/X.png");
 
-	resources->textures.get(Textures::O).setSmooth(true);
-	resources->textures.get(Textures::X).setSmooth(true);
+	resources->fonts.load(Fonts::ID::Montserrat, "Data/Fonts/Montserrat.ttf");
 
-	this->board = new Board(3, gameMode);
+	resources->textures.get(Textures::ID::O).setSmooth(true);
+	resources->textures.get(Textures::ID::X).setSmooth(true);
+
+	this->board = new Board(3, gameMode, difficulty);
 	this->board->setOnCompleteListener([&](State state) {
-		onCompleteListener()
+		onCompleteListener(state);
 	});
 }
 
@@ -42,10 +44,12 @@ void GameUILayer::draw(Resources* resources) const {
 		for (int j = 0; j < this->board->getSize(); j++) {
 			switch (this->board->getAt(i, j)) {
 			case State::X:
-				icon.setTexture(resources->textures.get(Textures::X));
+				icon.setTexture(resources->textures.get(Textures::ID::X));
+				icon.setColor(sf::Color(92, 158, 237));
 				break;
 			case State::O:
-				icon.setTexture(resources->textures.get(Textures::O));
+				icon.setTexture(resources->textures.get(Textures::ID::O));
+				icon.setColor(sf::Color(246, 206, 143));
 				break;
 			default:
 				continue;
@@ -55,6 +59,21 @@ void GameUILayer::draw(Resources* resources) const {
 			resources->window->draw(icon);
 		}
 	}
+
+	std::string temp;
+	switch (this->board->getCurrentPlayer()) {
+	case State::X:
+		temp = "X's turn";
+		break;
+	case State::O:
+		temp = "O's turn";
+		break;
+	}
+	sf::Text text(temp, resources->fonts.get(Fonts::ID::Montserrat), 20);
+	text.setFillColor(sf::Color::White);
+	text.setStyle(sf::Text::Bold);
+	text.setPosition(sf::Vector2f(resources->window->getSize().x - text.getLocalBounds().width - 20.0f, resources->window->getSize().y - text.getLocalBounds().height - 20.0f));
+	resources->window->draw(text);
 }
 
 bool GameUILayer::onEvent(Resources* resources, sf::Event* event) const {
@@ -68,9 +87,12 @@ bool GameUILayer::onEvent(Resources* resources, sf::Event* event) const {
 			pos.y >= y && pos.y <= y + boardSize) {
 			int unitX = (int) ((pos.x - x + boardSize / 2.0f) / unitSize);
 			int unitY = (int) ((pos.y - y) / unitSize);
-			this->board->setAt(unitX, unitY, this->board->getCurrentPlayer());
-			if (this->board->getGameMode() == GameMode::SINGLE_PLAYER) {
-				this->board->makeMove();
+
+			if (this->board->getAt(unitX, unitY) == State::NONE) {
+				this->board->setAt(unitX, unitY, this->board->getCurrentPlayer());
+				if (this->board->getGameMode() == GameMode::SINGLE_PLAYER && !this->board->isComplete()) {
+					this->board->makeMove();
+				}
 			}
 			return true;
 		}
@@ -78,6 +100,10 @@ bool GameUILayer::onEvent(Resources* resources, sf::Event* event) const {
 	return false;
 }
 
-void GameUILayer::setOnCompleteListener(std::function<void()> onCompleteListener) {
+void GameUILayer::setOnCompleteListener(std::function<void(State)> onCompleteListener) {
 	this->onCompleteListener = onCompleteListener;
+}
+
+void GameUILayer::resetBoard() {
+	this->board->reset();
 }

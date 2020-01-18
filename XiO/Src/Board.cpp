@@ -3,17 +3,18 @@
 #include "Board.h"
 #include "Utils/State.h"
 #include "Utils/GameMode.h"
+#include "Utils/Utils.h"
 
-Board::Board(int size, GameMode gameMode, Difficulty difficulty) : size(size), gameMode(gameMode), difficulty(difficulty), currentPlayer(State::X) {
-	this->map = new State[size * size];
+Board::Board(int size, GameMode gameMode, Difficulty difficulty) :
+	size(size), gameMode(gameMode), difficulty(difficulty), currentPlayer(State::X), complete(false) {
 	for (int i = 0; i < size * size; i++) {
-		this->map[i] = State::NONE;
+		this->map.push_back(State::NONE);
 	}
-	srand(time(NULL));
-}
+	srand((int) time(NULL));
 
-Board::~Board() {
-	delete[] this->map;
+	if (gameMode == GameMode::SINGLE_PLAYER) {
+		makeMove();
+	}
 }
 
 State Board::getAt(int x, int y) {
@@ -23,7 +24,11 @@ State Board::getAt(int x, int y) {
 void Board::setAt(int x, int y, State value) {
 	this->map[x * this->size + y] = value;
 	this->currentPlayer = !this->currentPlayer;
-	checkComplete();
+	State state = checkComplete(this->map);
+	if (state != State::NONE) {
+		this->complete = true;
+		this->onCompleteListener(state);
+	}
 }
 
 int Board::getSize() {
@@ -38,6 +43,10 @@ State Board::getCurrentPlayer() {
 	return this->currentPlayer;
 }
 
+bool Board::isComplete() {
+	return this->complete;
+}
+
 void Board::makeMove() {
 	switch (this->difficulty) {
 	case Difficulty::EASY:
@@ -50,42 +59,51 @@ void Board::makeMove() {
 		makeHardMove();
 		break;
 	}
-	checkComplete();
+	State state = checkComplete(this->map);
+	if (state != State::NONE) {
+		this->complete = true;
+		this->onCompleteListener(state);
+	}
 }
 
 void Board::setOnCompleteListener(std::function<void(State)> onCompleteListener) {
 	this->onCompleteListener = onCompleteListener;
 }
 
-void Board::checkComplete() {
-	State state = getAt(0, 0);
-	for (int j = 1; j < this->size; j++) {
-		state = state & getAt(j, j);
+void Board::reset() {
+	for (int i = 0; i < this->size * this->size; i++) {
+		this->map[i] = State::NONE;
 	}
-	if (state != State::NONE) {
-		this->onCompleteListener(state);
+	this->currentPlayer = State::X;
+	this->complete = false;
+	if (gameMode == GameMode::SINGLE_PLAYER) {
+		makeMove();
 	}
-	bool hasEmptySlot = false;
+}
+
+State Board::checkComplete(std::vector<State> map) {
+	int index = 0;
+	State state = getCurrentPlayer();
+	if (countDiagonally(map, true, state = getCurrentPlayer(), index) == this->size ||
+		countDiagonally(map, true, state = !getCurrentPlayer(), index) == this->size ||
+		countDiagonally(map, false, state = getCurrentPlayer(), index) == this->size ||
+		countDiagonally(map, false, state = !getCurrentPlayer(), index) == this->size) {
+		return state;
+	}
 	for (int i = 0; i < this->size; i++) {
-		State stateV = getAt(0, i);
-		State stateH = getAt(i, 0);
-		for (int j = 1; j < this->size; j++) {
-			stateV = stateV & getAt(j, i);
-			stateH = stateH & getAt(i, j);
-		}
-		if (stateV != State::NONE || stateH != State::NONE) {
-			this->onCompleteListener(stateV | stateH);
-		}
-		for (int j = 0; j < this->size; j++) {
-			if (getAt(i, j) == State::NONE) {
-				hasEmptySlot = true;
-				break;
-			}
+		if (countHorizontally(map, i, state = getCurrentPlayer(), index) == this->size ||
+			countVertically(map, i, state = getCurrentPlayer(), index) == this->size ||
+			countHorizontally(map, i, state = !getCurrentPlayer(), index) == this->size ||
+			countVertically(map, i, state = !getCurrentPlayer(), index) == this->size) {
+			return state;
 		}
 	}
-	if (!hasEmptySlot) {
-		this->onCompleteListener(State::NONE);
+	for (int i = 0; i < this->size * this->size; i++) {
+		if (map[i] == State::NONE) {
+			return State::NONE;
+		}
 	}
+	return State::TIE;
 }
 
 void Board::makeEasyMove() {
@@ -102,14 +120,20 @@ void Board::makeEasyMove() {
 
 void Board::makeMediumMove() {
 	int index = 0;
-	if (countDiagonally(!getCurrentPlayer(), index) == this->size - 1) {
+	State state = getCurrentPlayer();
+	if (countDiagonally(this->map, true, state = getCurrentPlayer(), index) == this->size - 1 ||
+		countDiagonally(this->map, true, state = !getCurrentPlayer(), index) == this->size - 1 ||
+		countDiagonally(this->map, false, state = getCurrentPlayer(), index) == this->size - 1 ||
+		countDiagonally(this->map, false, state = !getCurrentPlayer(), index) == this->size - 1) {
 		this->map[index] = getCurrentPlayer();
 		this->currentPlayer = !this->currentPlayer;
 		return;
 	}
 	for (int i = 0; i < this->size; i++) {
-		if (countVertically(i, !getCurrentPlayer(), index) == this->size - 1 ||
-			countHorizontally(i, !getCurrentPlayer(), index) == this->size - 1) {
+		if (countVertically(this->map, i, state = getCurrentPlayer(), index) == this->size - 1 ||
+			countHorizontally(this->map, i, state = getCurrentPlayer(), index) == this->size - 1 ||
+			countVertically(this->map, i, state = !getCurrentPlayer(), index) == this->size - 1 ||
+			countHorizontally(this->map, i, state = !getCurrentPlayer(), index) == this->size - 1) {
 			this->map[index] = getCurrentPlayer();
 			this->currentPlayer = !this->currentPlayer;
 			return;
@@ -118,62 +142,119 @@ void Board::makeMediumMove() {
 	makeEasyMove();
 }
 
-void Board::makeHardMove() {}
+void Board::makeHardMove() {
+	int index = 0, minEval = -100;
+	for (int i = 0; i < this->size * this->size; i++) {
+		if (this->map[i] == State::NONE) {
+			this->map[i] = getCurrentPlayer();
+			int eval = minimax(this->map, false, INT_MIN, INT_MAX);
+			this->map[i] = State::NONE;
+			if (eval > minEval) {
+				minEval = eval;
+				index = i;
+			}
+		}
+	}
 
-int Board::countHorizontally(int y, State state, int& index) {
+	this->map[index] = getCurrentPlayer();
+	this->currentPlayer = !this->currentPlayer;
+}
+
+int getByState(std::vector<State> map, int size, State state) {
+	int count = 0;
+	for (int i = 0; i < size; i++) {
+		if (map[i] == state) {
+			count++;
+		}
+	}
+	return count;
+}
+
+int Board::minimax(std::vector<State> map, bool maximize, int alpha, int beta) {
+	int eval = -100;
+	State state = checkComplete(map);
+	if (state != State::NONE) {
+		eval = state == State::X ? 10 : (state == State::O ? -10 : 0);
+	}
+	if (eval != -100) {
+		return eval;
+	}
+
+	std::vector<int> emptySlots;
+	for (int i = 0; i < this->size * this->size; i++) {
+		if (map[i] == State::NONE) {
+			emptySlots.push_back(i);
+		}
+	}
+
+	if (maximize) {
+		int bestEval = -100;
+		for (auto& position : emptySlots) {
+			map[position] = State::X;
+			int eval = minimax(map, false, alpha, beta);
+			map[position] = State::NONE;
+			bestEval = max(bestEval, eval);
+			alpha = max(alpha, eval);
+			if (beta <= alpha) {
+				break;
+			}
+		}
+		return bestEval;
+	} else {
+		int bestEval = 100;
+		for (auto& position : emptySlots) {
+			map[position] = State::O;
+			int eval = minimax(map, true, alpha, beta);
+			map[position] = State::NONE;
+			bestEval = min(bestEval, eval);
+			beta = min(beta, eval);
+			if (beta <= alpha) {
+				break;
+			}
+		}
+		return bestEval;
+	}
+}
+
+int Board::countHorizontally(std::vector<State> map, int y, State state, int& index) {
 	int count = 0;
 	for (int i = 0; i < this->size; i++) {
-		if (getAt(i, y) == state) {
+		if (map[i * this->size + y] == state) {
 			count++;
-		} else if (getAt(i, y) == State::NONE) {
+		} else if (map[i * this->size + y] == State::NONE) {
 			index = i * this->size + y;
 		} else {
-			count = this->size;
+			count = INT_MAX;
 			return count;
 		}
 	}
 	return count;
 }
 
-int Board::countVertically(int x, State state, int& index) {
+int Board::countVertically(std::vector<State> map, int x, State state, int& index) {
 	int count = 0;
 	for (int i = 0; i < this->size; i++) {
-		if (getAt(x, i) == state) {
+		if (map[x * this->size + i] == state) {
 			count++;
-		} else if (getAt(x, i) == State::NONE) {
+		} else if (map[x * this->size + i] == State::NONE) {
 			index = x * this->size + i;
 		} else {
-			count = this->size;
+			count = INT_MAX;
 			return count;
 		}
 	}
 	return count;
 }
 
-int Board::countDiagonally(State state, int& index) {
+int Board::countDiagonally(std::vector<State> map, bool left, State state, int& index) {
 	int count = 0;
 	for (int i = 0; i < this->size; i++) {
-		if (getAt(i, i) == state) {
+		if (map[i * this->size + (left ? i : (this->size - i - 1))] == state) {
 			count++;
-		} else if (getAt(i, i) == State::NONE) {
-			index = i * this->size + i;
+		} else if (map[i * this->size + (left ? i : (this->size - i - 1))] == State::NONE) {
+			index = i * this->size + (left ? i : (this->size - i - 1));
 		} else {
-			count = this->size;
-			return count;
-		}
-	}
-	if (count == this->size - 1) {
-		return count;
-	}
-
-	count = 0;
-	for (int i = 0; i < this->size; i++) {
-		if (getAt(i, this->size - i + 1) == state) {
-			count++;
-		} else if (getAt(i, this->size - i + 1) == State::NONE) {
-			index = (i + 1) * this->size - i + 1;
-		} else {
-			count = this->size;
+			count = INT_MAX;
 			return count;
 		}
 	}
